@@ -262,7 +262,7 @@ void gui::Render() noexcept
 
 	static bool enabledY_N = false;
 
-	ImGui::Button("Enable/Disable");
+	ImGui::Checkbox("Enable/Disable", &enabledY_N);
 	
 	static float verticalValue = 0.0f;
 
