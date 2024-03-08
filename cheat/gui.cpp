@@ -1,8 +1,13 @@
 ﻿#include "gui.h"
+#include "recoil.cpp"
 
 #include "../imgui/imgui.h"
 #include "../imgui/imgui_impl_dx9.h"
 #include "../imgui/imgui_impl_win32.h"
+
+#include <cmath>
+
+enum class DropdownOption { Option1, Option2, Option3 };
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(
 	HWND window,
@@ -238,6 +243,15 @@ void gui::EndRender() noexcept
 		ResetDevice();
 }
 
+static const char* GetDropdownOptionLabel(DropdownOption option) {
+	switch (option) {
+	case DropdownOption::Option1: return "Option 1";
+	case DropdownOption::Option2: return "Option 2";
+	case DropdownOption::Option3: return "Option 3";
+	default: return "Unknown";
+	}
+}
+
 void gui::Render() noexcept
 {
 	ImGui::SetNextWindowPos({ 0, 0 });
@@ -252,21 +266,66 @@ void gui::Render() noexcept
 	);
 
 	ImGui::Text(R"(
-  _________.__  .__        __           
- /   _____/|  | |__| ____ |  | _____.__.
- \_____  \ |  | |  |/    \|  |/ <   |  |
- /        \|  |_|  |   |  \    < \___  |
-/_______  /|____/__|___|  /__|_ \/ ____|
-        \/              \/     \/\/     
+                  _________.__  .__        __           
+                 /   _____/|  | |__| ____ |  | _____.__.
+                 \_____  \ |  | |  |/    \|  |/ <   |  |
+                 /        \|  |_|  |   |  \    < \___  |
+                /_______  /|____/__|___|  /__|_ \/ ____|
+                        \/              \/     \/\/     
     )");
 
-	static bool enabledY_N = false;
+	static bool isMacroEnabled;
+	static bool wasGPressed;
 
-	ImGui::Checkbox("Enable/Disable", &enabledY_N);
-	
-	static float verticalValue = 0.0f;
+	static int verticalValue = 1;
+	static int horizontalValue = 1;
 
-	ImGui::SliderFloat("Vertical Speed (Y)", &verticalValue, 0.0f, 10.0f);
+	ImGui::Checkbox(" Enable/Disable", &isMacroEnabled);
+
+	if (GetAsyncKeyState(0x47) & 0x8000)
+	{
+		if (!wasGPressed)
+		{
+			isMacroEnabled = !isMacroEnabled;
+			wasGPressed = true;
+		}
+	}
+	else
+	{
+		wasGPressed = false;
+	}
+
+	ImGui::SliderInt(" Vertical Speed (Y)", &verticalValue, 1, 10);
+	ImGui::SliderInt(" Horizontal Speed (X)", &horizontalValue, 1, 10);
+
+	// Define a variable to store the currently selected option
+	static DropdownOption selectedOption = DropdownOption::Option1;
+
+	// Draw the dropdown menu
+	if (ImGui::BeginCombo(" Select Config", GetDropdownOptionLabel(selectedOption)))
+	{
+		// Create a button for each option
+		if (ImGui::Selectable(GetDropdownOptionLabel(DropdownOption::Option1), selectedOption == DropdownOption::Option1))
+			selectedOption = DropdownOption::Option1;
+		if (ImGui::Selectable(GetDropdownOptionLabel(DropdownOption::Option2), selectedOption == DropdownOption::Option2))
+			selectedOption = DropdownOption::Option2;
+		if (ImGui::Selectable(GetDropdownOptionLabel(DropdownOption::Option3), selectedOption == DropdownOption::Option3))
+			selectedOption = DropdownOption::Option3;
+
+		ImGui::EndCombo();
+	}
+
+	if (isMacroEnabled) {
+		while (true) {
+			if (GetAsyncKeyState(VK_LBUTTON) & 0x8000) {
+				int vDelay = 10 - (verticalValue);
+				dragMouseDown(vDelay);
+			}
+			else {
+				break;
+			}
+		}
+	}
 
 	ImVec2 windowSize = ImGui::GetIO().DisplaySize;
 

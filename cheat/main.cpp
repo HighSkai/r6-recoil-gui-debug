@@ -19,16 +19,6 @@ int __stdcall wWinMain(
 		gui::Render();
 		gui::EndRender();
 
-		while (true) {
-			if (GetAsyncKeyState(VK_LBUTTON) & 0x8000) {
-				dragMouseDown(1);
-				dragMouseLeft(1);
-			}
-			else {
-				break;
-			}
-		}
-		
 		std::this_thread::sleep_for(std::chrono::milliseconds(5));
 	}
 

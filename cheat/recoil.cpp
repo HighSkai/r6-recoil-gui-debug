@@ -1,6 +1,6 @@
 #include <Windows.h>
 
-static void dragMouseDown(int delayMilliseconds) {
+static void dragMouseDown(int delay) {
     INPUT input;
 
     input.type = INPUT_MOUSE;
@@ -9,11 +9,10 @@ static void dragMouseDown(int delayMilliseconds) {
     input.mi.dwFlags = MOUSEEVENTF_MOVE;
 
     SendInput(1, &input, sizeof(INPUT));
-
-    Sleep(delayMilliseconds);
+    Sleep(delay);
 }
 
-static void dragMouseLeft(int delayMilliseconds) {
+static void dragMouseLeft(int delay) {
     INPUT input;
 
     input.type = INPUT_MOUSE;
@@ -22,6 +21,5 @@ static void dragMouseLeft(int delayMilliseconds) {
     input.mi.dwFlags = MOUSEEVENTF_MOVE;
 
     SendInput(1, &input, sizeof(INPUT));
-
-    Sleep(delayMilliseconds);
+    Sleep(delay);
 }
