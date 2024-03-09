@@ -1,13 +1,25 @@
 ﻿#include "gui.h"
-#include "recoil.cpp"
 
 #include "../imgui/imgui.h"
 #include "../imgui/imgui_impl_dx9.h"
 #include "../imgui/imgui_impl_win32.h"
 
+#include <Windows.h>
 #include <cmath>
+#include <fstream>
+#include <string>
+#include <vector>
+#include <iostream>
+#include <sstream>
 
-enum class DropdownOption { Option1, Option2, Option3 };
+static std::string newConfigName;
+static std::vector<std::string> configEntries;
+
+static bool isMacroEnabled;
+static bool wasGPressed;
+
+static int verticalValue = 1;
+static int angle = 1;
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(
 	HWND window,
@@ -243,21 +255,69 @@ void gui::EndRender() noexcept
 		ResetDevice();
 }
 
-static const char* GetDropdownOptionLabel(DropdownOption option) {
-	switch (option) {
-	case DropdownOption::Option1: return "Option 1";
-	case DropdownOption::Option2: return "Option 2";
-	case DropdownOption::Option3: return "Option 3";
-	default: return "Unknown";
+void dragMouse(int delay, double angle, double distance) {
+	INPUT input;
+	input.type = INPUT_MOUSE;
+
+	double angleRad = angle * 3.141592653 / 180.0;
+	input.mi.dx = static_cast<int>(distance * cos(angleRad));
+	input.mi.dy = static_cast<int>(distance * sin(angleRad));
+	input.mi.dwFlags = MOUSEEVENTF_MOVE;
+
+	SendInput(1, &input, sizeof(INPUT));
+	Sleep(delay);
+}
+
+void saveConfig() {
+	std::ofstream configFile("C:/Users/Skai/Documents/GitHub/New folder/r6-recoil/cheat/config.txt");
+
+	if (configFile.is_open()) {
+		for (const auto& entry : configEntries) {
+			configFile << entry << std::endl;
+		}
+
+		configFile.close();
+		std::cout << "Configurations saved successfully." << std::endl;
+	}
+	else {
+		std::cerr << "Error opening config.txt for writing." << std::endl;
+	}
+}
+
+void loadConfig(const std::string& configLine) {
+	std::stringstream ss(configLine);
+	std::string configName;
+	std::getline(ss, configName, ',');
+
+	if (!ss.eof()) {
+		std::string verticalValueStr, angleStr;
+		std::getline(ss, verticalValueStr, ',');
+		std::getline(ss, angleStr);
+
+		verticalValue = std::stoi(verticalValueStr);
+		angle = std::stoi(angleStr);
+
+		std::cout << "Loaded config: " << configName << ", verticalValue: " << verticalValue << ", angle: " << angle << std::endl;
 	}
 }
 
 void gui::Render() noexcept
 {
+	ImGuiStyle& style = ImGui::GetStyle();
+
+	style.WindowRounding = 2.0f;
+	style.FrameRounding = 4.0f;
+	style.PopupRounding = 2.0f;
+	style.GrabRounding = 3.0f;
+	style.TabRounding = 4.0f;
+
+	ImGuiIO& io = ImGui::GetIO();
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+
 	ImGui::SetNextWindowPos({ 0, 0 });
 	ImGui::SetNextWindowSize({ WIDTH, HEIGHT });
 	ImGui::Begin(
-		"Slinky - Recoil Macro                            (Probably Detected)",
+		"Recoil Gui",
 		&isRunning,
 		ImGuiWindowFlags_NoResize |
 		ImGuiWindowFlags_NoSavedSettings |
@@ -265,22 +325,70 @@ void gui::Render() noexcept
 		ImGuiWindowFlags_NoMove
 	);
 
-	ImGui::Text(R"(
-                  _________.__  .__        __           
-                 /   _____/|  | |__| ____ |  | _____.__.
-                 \_____  \ |  | |  |/    \|  |/ <   |  |
-                 /        \|  |_|  |   |  \    < \___  |
-                /_______  /|____/__|___|  /__|_ \/ ____|
-                        \/              \/     \/\/     
-    )");
+	ImGui::Text(R"(   
+    ------------------------------------------------------------
+    __________                    .__.__      ________      .__ 
+    \______   \ ____   ____  ____ |__|  |    /  _____/ __ __|__|
+     |       _// __ \_/ ___\/  _ \|  |  |   /   \  ___|  |  \  |
+     |    |   \  ___/\  \__(  <_> )  |  |__ \    \_\  \  |  /  |
+     |____|_  /\___  >\___  >____/|__|____/  \______  /____/|__|
+            \/     \/     \/                        \/          
+    ------------------------------------------------------------
+)");
 
-	static bool isMacroEnabled;
-	static bool wasGPressed;
+	ImGui::Checkbox(" [Enable / Disable]", &isMacroEnabled);
 
-	static int verticalValue = 1;
-	static int horizontalValue = 1;
+	ImGui::SliderInt(" [Speed]", &verticalValue, 1, 9);
+	ImGui::SliderInt(" [Angle]", &angle, 1, 360);
 
-	ImGui::Checkbox(" Enable/Disable", &isMacroEnabled);
+
+
+	/////////////////////////////////////////////////////
+	static std::string currentConfig;
+	if (ImGui::BeginCombo("Load Config", currentConfig.c_str())) {
+		std::ifstream configFile("C:/Users/Skai/Documents/GitHub/New folder/r6-recoil/cheat/config.txt"); //needs to be changed to personal folder
+		std::string line;
+		while (std::getline(configFile, line)) {
+			if (ImGui::Selectable(line.c_str())) {
+				currentConfig = line;
+				loadConfig(line);
+			}
+		}
+		configFile.close();
+		ImGui::EndCombo();
+	}
+	/////////////////////////////////////////////////////
+
+	/////////////////////////////////////////////////////
+	if (ImGui::Button("Add Config")) {
+		ImGui::OpenPopup("Add Config");
+	}
+
+	if (ImGui::BeginPopupModal("Add Config", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+		static char configNameBuffer[256] = "";
+		if (ImGui::InputText("Config Name", configNameBuffer, sizeof(configNameBuffer), ImGuiInputTextFlags_EnterReturnsTrue)) {
+			newConfigName = configNameBuffer;
+		}
+
+		if (ImGui::Button("Save")) {
+			newConfigName = configNameBuffer;
+
+			std::string entry = newConfigName + "," + std::to_string(verticalValue) + "," + std::to_string(angle);
+			configEntries.push_back(entry);
+			saveConfig();
+			ImGui::CloseCurrentPopup();
+		}
+
+		ImGui::SameLine();
+		if (ImGui::Button("Cancel")) {
+			memset(configNameBuffer, 0, sizeof(configNameBuffer));
+			ImGui::CloseCurrentPopup();
+		}
+		ImGui::EndPopup();
+	}
+	/////////////////////////////////////////////////////
+
+
 
 	if (GetAsyncKeyState(0x47) & 0x8000)
 	{
@@ -295,31 +403,11 @@ void gui::Render() noexcept
 		wasGPressed = false;
 	}
 
-	ImGui::SliderInt(" Vertical Speed (Y)", &verticalValue, 1, 10);
-	ImGui::SliderInt(" Horizontal Speed (X)", &horizontalValue, 1, 10);
-
-	// Define a variable to store the currently selected option
-	static DropdownOption selectedOption = DropdownOption::Option1;
-
-	// Draw the dropdown menu
-	if (ImGui::BeginCombo(" Select Config", GetDropdownOptionLabel(selectedOption)))
-	{
-		// Create a button for each option
-		if (ImGui::Selectable(GetDropdownOptionLabel(DropdownOption::Option1), selectedOption == DropdownOption::Option1))
-			selectedOption = DropdownOption::Option1;
-		if (ImGui::Selectable(GetDropdownOptionLabel(DropdownOption::Option2), selectedOption == DropdownOption::Option2))
-			selectedOption = DropdownOption::Option2;
-		if (ImGui::Selectable(GetDropdownOptionLabel(DropdownOption::Option3), selectedOption == DropdownOption::Option3))
-			selectedOption = DropdownOption::Option3;
-
-		ImGui::EndCombo();
-	}
-
 	if (isMacroEnabled) {
 		while (true) {
 			if (GetAsyncKeyState(VK_LBUTTON) & 0x8000) {
 				int vDelay = 10 - (verticalValue);
-				dragMouseDown(vDelay);
+				dragMouse(vDelay, angle, 2);
 			}
 			else {
 				break;

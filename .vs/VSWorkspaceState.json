@@ -2,8 +2,7 @@
   "ExpandedNodes": [
     "",
     "\\cheat",
-    "\\cheat-menu",
-    "\\imgui"
+    "\\Release"
   ],
   "SelectedNode": "\\cheat\\gui.cpp",
   "PreviewInSolutionExplorer": false

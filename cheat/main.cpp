@@ -1,5 +1,4 @@
 #include "gui.h"
-#include "recoil.cpp"
 #include <Windows.h>
 #include <thread>
 
@@ -9,7 +8,7 @@ int __stdcall wWinMain(
 	PWSTR arguments,
 	int commandShow)
 {
-	gui::CreateHWindow("Slinky");
+	gui::CreateHWindow("Recoil Gui");
 	gui::CreateDevice();
 	gui::CreateImGui();
 
